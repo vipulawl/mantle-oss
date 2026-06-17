@@ -1,5 +1,7 @@
 # mantle-oss
 
+![mantle-oss dashboard](docs/screenshot.png)
+
 Open-source, self-hosted alternative to HeyMantle. Track your Shopify app's MRR, customers, churn, reviews, and subscription events — all from your local machine. No infra, no SaaS fees.
 
 ## What it does
