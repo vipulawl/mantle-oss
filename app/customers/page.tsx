@@ -6,7 +6,6 @@ import { useSyncEvents } from "@/hooks/useSyncEvents";
 import { apiFetch } from "@/lib/apiFetch";
 
 type Customer = {
-  id: string;
   shopDomain: string;
   shopName: string | null;
   plan: string | null;

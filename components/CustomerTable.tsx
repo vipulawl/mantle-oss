@@ -3,7 +3,6 @@
 import { formatDistanceToNow } from "date-fns";
 
 type Customer = {
-  id: string;
   shopDomain: string;
   shopName: string | null;
   plan: string | null;
@@ -33,7 +32,7 @@ export default function CustomerTable({ customers }: { customers: Customer[] }) 
         </thead>
         <tbody>
           {customers.map((c) => (
-            <tr key={c.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20">
+            <tr key={c.shopDomain} className="border-b border-zinc-800/50 hover:bg-zinc-800/20">
               <td className="py-3 pr-4">
                 <p className="text-white font-medium">{c.shopName || c.shopDomain}</p>
                 <p className="text-zinc-500 text-xs">{c.shopDomain}</p>
