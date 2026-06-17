@@ -8,36 +8,36 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// shopDomain is the PK — the 2026 Partner API exposes installs via events,
+// not a stable install GID, so we key by shop domain instead.
 model Install {
-  id              String    @id
-  shopDomain      String
-  shopName        String?
-  plan            String?
-  status          String    @default("active") // active | churned
-  installedAt     DateTime
-  uninstalledAt   DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  shopDomain    String    @id
+  shopName      String?
+  plan          String?
+  status        String    @default("active") // active | churned
+  installedAt   DateTime
+  uninstalledAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Transaction {
-  id          String   @id
-  shopDomain  String
-  type        String   // SALE | REFUND | PENDING_CHARGE
-  amount      Float
-  currency    String   @default("USD")
-  plan        String?
-  occurredAt  DateTime
-  createdAt   DateTime @default(now())
+  id         String   @id
+  shopDomain String
+  type       String   // SALE | REFUND
+  amount     Float
+  currency   String   @default("USD")
+  occurredAt DateTime
+  createdAt  DateTime @default(now())
 }
 
 model Review {
-  id          String   @id
-  author      String
-  rating      Int
-  body        String?
-  reviewedAt  DateTime
-  syncedAt    DateTime @default(now())
+  id         String   @id
+  author     String
+  rating     Int
+  body       String?
+  reviewedAt DateTime
+  syncedAt   DateTime @default(now())
 }
 
 model SyncMeta {

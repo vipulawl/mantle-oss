@@ -21,25 +21,22 @@ function emit(event: SyncEvent) {
 
 export async function syncInstalls() {
   try {
-    const installs = await fetchAllInstalls();
+    const shops = await fetchAllInstalls();
 
-    for (const install of installs) {
+    for (const shop of shops) {
       await db.install.upsert({
-        where: { id: install.id },
+        where: { shopDomain: shop.shopDomain },
         update: {
-          shopName: install.shop.name,
-          plan: install.activeSubscriptions[0]?.name || null,
-          status: install.uninstalledAt ? "churned" : "active",
-          uninstalledAt: install.uninstalledAt ? new Date(install.uninstalledAt) : null,
+          shopName: shop.shopName,
+          status: shop.status,
+          uninstalledAt: shop.uninstalledAt,
         },
         create: {
-          id: install.id,
-          shopDomain: install.shop.myshopifyDomain,
-          shopName: install.shop.name,
-          plan: install.activeSubscriptions[0]?.name || null,
-          status: install.uninstalledAt ? "churned" : "active",
-          installedAt: new Date(install.installedAt),
-          uninstalledAt: install.uninstalledAt ? new Date(install.uninstalledAt) : null,
+          shopDomain: shop.shopDomain,
+          shopName: shop.shopName,
+          status: shop.status,
+          installedAt: shop.installedAt,
+          uninstalledAt: shop.uninstalledAt,
         },
       });
     }
@@ -53,7 +50,7 @@ export async function syncInstalls() {
     emit({
       type: "installs",
       timestamp: new Date().toISOString(),
-      message: `Synced ${installs.length} installs`,
+      message: `Synced ${shops.length} shops`,
     });
   } catch (err) {
     emit({
@@ -69,19 +66,18 @@ export async function syncTransactions() {
     const transactions = await fetchAllTransactions();
 
     for (const tx of transactions) {
-      const isRefund =
-        tx.type?.toLowerCase().includes("refund") ||
-        parseFloat(tx.grossAmount.amount) < 0;
+      // Detect refunds from the GID type segment
+      const isRefund = tx.id.includes("Refund");
 
       await db.transaction.upsert({
         where: { id: tx.id },
         update: {},
         create: {
           id: tx.id,
-          shopDomain: tx.shop.myshopifyDomain,
+          shopDomain: tx.shop!.myshopifyDomain,
           type: isRefund ? "REFUND" : "SALE",
-          amount: Math.abs(parseFloat(tx.grossAmount.amount)),
-          currency: tx.grossAmount.currencyCode,
+          amount: Math.abs(parseFloat(tx.grossAmount!.amount)),
+          currency: tx.grossAmount!.currencyCode,
           occurredAt: new Date(tx.createdAt),
         },
       });
