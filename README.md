@@ -33,21 +33,76 @@ npm install
 cp .env.example .env
 ```
 
-Edit `.env` and fill in:
+Edit `.env` and fill in the four values below. Here's exactly where to find each one:
+
+---
+
+#### `SHOPIFY_PARTNER_API_TOKEN`
+
+1. Go to [partners.shopify.com](https://partners.shopify.com)
+2. Click **Settings** in the left sidebar
+3. Click **Partner API clients**
+4. Click **Create API client**, give it a name (e.g. `mantle-oss`)
+5. Copy the access token shown — **you won't be able to see it again**
+
+> The token needs no special scopes selected. It gets read access to your org's apps by default.
+
+---
+
+#### `SHOPIFY_ORGANIZATION_ID`
+
+Look at the URL after you log in to the Partners dashboard:
 
 ```
-SHOPIFY_PARTNER_API_TOKEN=your_token_here
-SHOPIFY_ORGANIZATION_ID=your_org_id
-SHOPIFY_APP_ID=your_app_id
-SHOPIFY_APP_HANDLE=your-app-handle
+https://partners.shopify.com/1234567/apps
+                              ^^^^^^^
+                         this is your org ID
 ```
 
-**How to get these values:**
+It's the number between `partners.shopify.com/` and `/apps` (or `/settings`, etc.).
 
-- **Partner API Token**: Shopify Partners dashboard → Settings → Partner API clients → Create API client → copy the token
-- **Organization ID**: Found in your Partners dashboard URL — `partners.shopify.com/{org_id}/...`
-- **App ID**: Partners dashboard → Apps → select your app → the numeric ID in the URL
-- **App Handle**: The slug used in your App Store URL: `apps.shopify.com/{handle}`
+---
+
+#### `SHOPIFY_APP_ID`
+
+1. In the Partners dashboard, click **Apps** in the sidebar
+2. Click on your app
+3. Look at the URL:
+
+```
+https://partners.shopify.com/1234567/apps/9876543/overview
+                                          ^^^^^^^
+                                      this is your app ID
+```
+
+It's the number after `/apps/`.
+
+---
+
+#### `SHOPIFY_APP_HANDLE`
+
+This is the slug in your Shopify App Store listing URL:
+
+```
+https://apps.shopify.com/your-app-name
+                          ^^^^^^^^^^^^^
+                         this is your handle
+```
+
+If your app isn't listed on the App Store yet, you can leave this blank — only the Reviews page will be empty.
+
+---
+
+Your final `.env` should look like:
+
+```
+DATABASE_URL="file:./dev.db"
+
+SHOPIFY_PARTNER_API_TOKEN=shppa_abc123...
+SHOPIFY_ORGANIZATION_ID=1234567
+SHOPIFY_APP_ID=9876543
+SHOPIFY_APP_HANDLE=your-app-name
+```
 
 ### 3. Run
 
