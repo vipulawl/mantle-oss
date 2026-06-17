@@ -27,8 +27,8 @@ function logError(context: string, err: unknown) {
 
 export async function syncInstalls() {
   try {
-    const shops = await fetchAllInstalls();
-    console.log(`[mantle-oss] syncInstalls: fetched ${shops.length} shops from API`);
+    const { shops, events } = await fetchAllInstalls();
+    console.log(`[mantle-oss] syncInstalls: fetched ${shops.length} shops, ${events.length} events from API`);
 
     for (const shop of shops) {
       await db.install.upsert({
@@ -48,13 +48,32 @@ export async function syncInstalls() {
       });
     }
 
+    for (const event of events) {
+      await db.appEvent.upsert({
+        where: {
+          shopDomain_type_occurredAt: {
+            shopDomain: event.shop.myshopifyDomain,
+            type: event.type,
+            occurredAt: new Date(event.occurredAt),
+          },
+        },
+        update: { shopName: event.shop.name },
+        create: {
+          shopDomain: event.shop.myshopifyDomain,
+          shopName: event.shop.name,
+          type: event.type,
+          occurredAt: new Date(event.occurredAt),
+        },
+      });
+    }
+
     await db.syncMeta.upsert({
       where: { key: "lastInstallSync" },
       update: { value: new Date().toISOString() },
       create: { key: "lastInstallSync", value: new Date().toISOString() },
     });
 
-    console.log(`[mantle-oss] syncInstalls: wrote ${shops.length} shops to DB`);
+    console.log(`[mantle-oss] syncInstalls: wrote ${shops.length} shops, ${events.length} events to DB`);
     emit({ type: "installs", timestamp: new Date().toISOString(), message: `Synced ${shops.length} shops` });
   } catch (err) {
     logError("Install sync failed", err);

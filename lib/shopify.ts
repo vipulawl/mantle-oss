@@ -18,11 +18,11 @@ async function gql(query: string, variables: Record<string, unknown> = {}) {
   return json.data;
 }
 
-// --- Installs via app.events ---
+// --- Installs + Events via app.events ---
 // The 2026 Partner API removed app.installations; installs come from app.events.
 // PageInfo.endCursor doesn't exist in this API — cursor lives on each edge instead.
 
-type AppEvent = {
+export type RawAppEvent = {
   type: string;
   occurredAt: string;
   shop: { myshopifyDomain: string; name: string };
@@ -34,6 +34,11 @@ export type ShopInstallState = {
   status: "active" | "churned";
   installedAt: Date;
   uninstalledAt: Date | null;
+};
+
+export type FetchInstallsResult = {
+  shops: ShopInstallState[];
+  events: RawAppEvent[];
 };
 
 const EVENTS_QUERY = `
@@ -54,34 +59,33 @@ const EVENTS_QUERY = `
   }
 `;
 
-export async function fetchAllInstalls(): Promise<ShopInstallState[]> {
-  const events: AppEvent[] = [];
+export async function fetchAllInstalls(): Promise<FetchInstallsResult> {
+  const allEvents: RawAppEvent[] = [];
   let after: string | null = null;
 
   do {
     const data = await gql(EVENTS_QUERY, { appId: APP_ID, after });
     const page = data.app.events;
-    const edges: { cursor: string; node: AppEvent }[] = page.edges;
-
-    const relevant = edges
-      .map((e) => e.node)
-      .filter((e) => e.type === "RELATIONSHIP_INSTALLED" || e.type === "RELATIONSHIP_UNINSTALLED");
-    events.push(...relevant);
-
+    const edges: { cursor: string; node: RawAppEvent }[] = page.edges;
+    allEvents.push(...edges.map((e) => e.node));
     after = page.pageInfo.hasNextPage && edges.length > 0
       ? edges[edges.length - 1].cursor
       : null;
   } while (after);
 
-  // Reconstruct per-shop current state from full event history
-  const byShop = new Map<string, { events: AppEvent[]; shopName: string }>();
-  for (const event of events) {
+  // Reconstruct per-shop install state from RELATIONSHIP_* events only
+  const relationshipEvents = allEvents.filter(
+    (e) => e.type === "RELATIONSHIP_INSTALLED" || e.type === "RELATIONSHIP_UNINSTALLED"
+  );
+
+  const byShop = new Map<string, { events: RawAppEvent[]; shopName: string }>();
+  for (const event of relationshipEvents) {
     const domain = event.shop.myshopifyDomain;
     if (!byShop.has(domain)) byShop.set(domain, { events: [], shopName: event.shop.name });
     byShop.get(domain)!.events.push(event);
   }
 
-  const result: ShopInstallState[] = [];
+  const shops: ShopInstallState[] = [];
   for (const [shopDomain, { events: shopEvents, shopName }] of byShop) {
     shopEvents.sort((a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime());
 
@@ -91,7 +95,7 @@ export async function fetchAllInstalls(): Promise<ShopInstallState[]> {
     const status: "active" | "churned" =
       lastEvent.type === "RELATIONSHIP_INSTALLED" ? "active" : "churned";
 
-    result.push({
+    shops.push({
       shopDomain,
       shopName,
       status,
@@ -100,7 +104,7 @@ export async function fetchAllInstalls(): Promise<ShopInstallState[]> {
     });
   }
 
-  return result;
+  return { shops, events: allEvents };
 }
 
 // --- Transactions ---

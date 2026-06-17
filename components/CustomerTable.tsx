@@ -55,24 +55,14 @@ export default function CustomerTable({ customers, filter }: Props) {
               </td>
 
               <td className="py-3 pr-4">
-                <div className="flex flex-col gap-0.5">
-                  <a
-                    href={`https://${c.shopDomain}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-zinc-400 text-xs hover:text-zinc-200 transition-colors"
-                  >
-                    Storefront ↗
-                  </a>
-                  <a
-                    href={`https://${c.shopDomain}/admin`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-zinc-500 text-xs hover:text-zinc-300 transition-colors"
-                  >
-                    Admin ↗
-                  </a>
-                </div>
+                <a
+                  href={`https://${c.shopDomain}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-zinc-400 text-xs hover:text-zinc-200 transition-colors"
+                >
+                  {c.shopDomain} ↗
+                </a>
               </td>
 
               {showRevenue && (

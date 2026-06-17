@@ -41,6 +41,17 @@ model Review {
   syncedAt   DateTime @default(now())
 }
 
+model AppEvent {
+  id         String   @id @default(cuid())
+  shopDomain String
+  shopName   String?
+  type       String
+  occurredAt DateTime
+  createdAt  DateTime @default(now())
+
+  @@unique([shopDomain, type, occurredAt])
+}
+
 model SyncMeta {
   key       String   @id
   value     String

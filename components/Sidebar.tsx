@@ -8,6 +8,7 @@ const links = [
   { href: "/customers", label: "Customers", icon: "◎" },
   { href: "/revenue", label: "Revenue", icon: "◈" },
   { href: "/reviews", label: "Reviews", icon: "◇" },
+  { href: "/activity", label: "Activity", icon: "◑" },
 ];
 
 export default function Sidebar() {
