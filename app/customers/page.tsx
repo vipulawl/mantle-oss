@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import CustomerTable from "@/components/CustomerTable";
 import { useSyncEvents } from "@/hooks/useSyncEvents";
+import { apiFetch } from "@/lib/apiFetch";
 
 type Customer = {
   id: string;
@@ -14,17 +15,24 @@ type Customer = {
   uninstalledAt: string | null;
 };
 
+
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [status, setStatus] = useState("active");
   const [search, setSearch] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const fetchCustomers = useCallback(async () => {
     const params = new URLSearchParams();
     if (status !== "all") params.set("status", status);
     if (search) params.set("q", search);
-    const data = await fetch(`/api/customers?${params}`).then((r) => r.json());
-    setCustomers(data);
+    const data = await apiFetch<Customer[]>(`/api/customers?${params}`);
+    if (data) {
+      setCustomers(data);
+      setError(null);
+    } else {
+      setError("Failed to load customers — check the terminal for details");
+    }
   }, [status, search]);
 
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
@@ -36,6 +44,12 @@ export default function CustomersPage() {
   return (
     <div className="p-8">
       <h1 className="text-xl font-semibold text-white mb-6">Customers</h1>
+
+      {error && (
+        <div className="mb-4 bg-red-900/30 border border-red-800 rounded-lg px-4 py-3 text-red-400 text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="flex gap-3 mb-6">
         <input

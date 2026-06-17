@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import RevenueChart from "@/components/RevenueChart";
 import { useSyncEvents } from "@/hooks/useSyncEvents";
+import { apiFetch } from "@/lib/apiFetch";
 import {
   BarChart,
   Bar,
@@ -21,10 +22,12 @@ type RevenueData = {
 export default function RevenuePage() {
   const [data, setData] = useState<RevenueData | null>(null);
   const [days, setDays] = useState(90);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const res = await fetch(`/api/revenue?days=${days}`).then((r) => r.json());
-    setData(res);
+    const res = await apiFetch<RevenueData>(`/api/revenue?days=${days}`);
+    if (res) { setData(res); setError(null); }
+    else setError("API error — check terminal");
   }, [days]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -51,6 +54,12 @@ export default function RevenuePage() {
           ))}
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 bg-red-900/30 border border-red-800 rounded-lg px-4 py-3 text-red-400 text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">

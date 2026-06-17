@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import KPICard from "@/components/KPICard";
 import RevenueChart from "@/components/RevenueChart";
 import { useSyncEvents } from "@/hooks/useSyncEvents";
+import { apiFetch } from "@/lib/apiFetch";
 
 type Overview = {
   activeCustomers: number;
@@ -22,14 +23,15 @@ export default function OverviewPage() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [revenue, setRevenue] = useState<RevenueData | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     const [o, r] = await Promise.all([
-      fetch("/api/overview").then((res) => res.json()),
-      fetch("/api/revenue?days=30").then((res) => res.json()),
+      apiFetch<Overview>("/api/overview"),
+      apiFetch<RevenueData>("/api/revenue?days=30"),
     ]);
-    setOverview(o);
-    setRevenue(r);
+    if (o) { setOverview(o); setError(null); } else setError("API error — check terminal");
+    if (r) setRevenue(r);
     setLastUpdated(new Date().toLocaleTimeString());
   }, []);
 
@@ -55,6 +57,12 @@ export default function OverviewPage() {
           Refresh
         </button>
       </div>
+
+      {error && (
+        <div className="mb-6 bg-red-900/30 border border-red-800 rounded-lg px-4 py-3 text-red-400 text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KPICard

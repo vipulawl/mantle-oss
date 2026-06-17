@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import ReviewsList from "@/components/ReviewsList";
 import { useSyncEvents } from "@/hooks/useSyncEvents";
+import { apiFetch } from "@/lib/apiFetch";
 
 type ReviewData = {
   reviews: {
@@ -18,12 +19,14 @@ type ReviewData = {
 export default function ReviewsPage() {
   const [data, setData] = useState<ReviewData | null>(null);
   const [filterRating, setFilterRating] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     const params = new URLSearchParams();
     if (filterRating !== null) params.set("rating", String(filterRating));
-    const res = await fetch(`/api/reviews?${params}`).then((r) => r.json());
-    setData(res);
+    const res = await apiFetch<ReviewData>(`/api/reviews?${params}`);
+    if (res) { setData(res); setError(null); }
+    else setError("API error — check terminal");
   }, [filterRating]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -40,6 +43,12 @@ export default function ReviewsPage() {
   return (
     <div className="p-8">
       <h1 className="text-xl font-semibold text-white mb-6">Reviews</h1>
+
+      {error && (
+        <div className="mb-4 bg-red-900/30 border border-red-800 rounded-lg px-4 py-3 text-red-400 text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
