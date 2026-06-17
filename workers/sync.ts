@@ -19,9 +19,16 @@ function emit(event: SyncEvent) {
   for (const cb of listeners) cb(event);
 }
 
+function logError(context: string, err: unknown) {
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error(`[mantle-oss] ${context}: ${msg}`);
+  emit({ type: "error", timestamp: new Date().toISOString(), message: `${context}: ${msg}` });
+}
+
 export async function syncInstalls() {
   try {
     const shops = await fetchAllInstalls();
+    console.log(`[mantle-oss] syncInstalls: fetched ${shops.length} shops from API`);
 
     for (const shop of shops) {
       await db.install.upsert({
@@ -47,26 +54,19 @@ export async function syncInstalls() {
       create: { key: "lastInstallSync", value: new Date().toISOString() },
     });
 
-    emit({
-      type: "installs",
-      timestamp: new Date().toISOString(),
-      message: `Synced ${shops.length} shops`,
-    });
+    console.log(`[mantle-oss] syncInstalls: wrote ${shops.length} shops to DB`);
+    emit({ type: "installs", timestamp: new Date().toISOString(), message: `Synced ${shops.length} shops` });
   } catch (err) {
-    emit({
-      type: "error",
-      timestamp: new Date().toISOString(),
-      message: `Install sync failed: ${err instanceof Error ? err.message : String(err)}`,
-    });
+    logError("Install sync failed", err);
   }
 }
 
 export async function syncTransactions() {
   try {
     const transactions = await fetchAllTransactions();
+    console.log(`[mantle-oss] syncTransactions: fetched ${transactions.length} transactions from API`);
 
     for (const tx of transactions) {
-      // Detect refunds from the GID type segment
       const isRefund = tx.id.includes("Refund");
 
       await db.transaction.upsert({
@@ -89,23 +89,17 @@ export async function syncTransactions() {
       create: { key: "lastTransactionSync", value: new Date().toISOString() },
     });
 
-    emit({
-      type: "transactions",
-      timestamp: new Date().toISOString(),
-      message: `Synced ${transactions.length} transactions`,
-    });
+    console.log(`[mantle-oss] syncTransactions: wrote ${transactions.length} transactions to DB`);
+    emit({ type: "transactions", timestamp: new Date().toISOString(), message: `Synced ${transactions.length} transactions` });
   } catch (err) {
-    emit({
-      type: "error",
-      timestamp: new Date().toISOString(),
-      message: `Transaction sync failed: ${err instanceof Error ? err.message : String(err)}`,
-    });
+    logError("Transaction sync failed", err);
   }
 }
 
 export async function syncReviews() {
   try {
     const reviews = await scrapeReviews();
+    console.log(`[mantle-oss] syncReviews: fetched ${reviews.length} reviews`);
 
     for (const review of reviews) {
       await db.review.upsert({
@@ -127,16 +121,9 @@ export async function syncReviews() {
       create: { key: "lastReviewSync", value: new Date().toISOString() },
     });
 
-    emit({
-      type: "reviews",
-      timestamp: new Date().toISOString(),
-      message: `Synced ${reviews.length} reviews`,
-    });
+    console.log(`[mantle-oss] syncReviews: wrote ${reviews.length} reviews to DB`);
+    emit({ type: "reviews", timestamp: new Date().toISOString(), message: `Synced ${reviews.length} reviews` });
   } catch (err) {
-    emit({
-      type: "error",
-      timestamp: new Date().toISOString(),
-      message: `Review sync failed: ${err instanceof Error ? err.message : String(err)}`,
-    });
+    logError("Review sync failed", err);
   }
 }
