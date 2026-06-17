@@ -11,9 +11,11 @@ function formatPlan(billingInterval: string | null): string | null {
   return billingInterval;
 }
 
-// A shop is "currently subscribed" if their last charge is within the expected billing window.
+// A shop is "currently paid" if their last charge is within the expected billing window.
 // Monthly: last charge ≤ 37 days ago (30 + 7-day grace).
 // Annual: last charge ≤ 400 days ago (365 + 35-day grace).
+// Note: free-trial users and stores billed mid-cycle won't appear here — Partner API
+// only sees completed charges, not pending or trial subscriptions.
 function isActiveSubscription(lastTxDate: Date, billingInterval: string | null): boolean {
   const daysSince = (Date.now() - lastTxDate.getTime()) / (1000 * 60 * 60 * 24);
   if (billingInterval === "ANNUAL") return daysSince <= 400;
@@ -31,7 +33,7 @@ export async function GET(req: NextRequest) {
       : {};
 
     const statusWhere =
-      filter === "installed" || filter === "subscribed"
+      filter === "installed" || filter === "paid"
         ? { status: "active" }
         : filter === "uninstalled"
         ? { status: "churned" }
@@ -76,7 +78,7 @@ export async function GET(req: NextRequest) {
     }));
 
     const filtered =
-      filter === "subscribed"
+      filter === "paid"
         ? enriched.filter((c) => {
             const plan = planMap.get(c.shopDomain);
             if (!plan) return false;

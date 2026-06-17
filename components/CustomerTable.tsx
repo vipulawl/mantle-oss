@@ -23,7 +23,7 @@ export default function CustomerTable({ customers, filter }: Props) {
     return <div className="text-center text-zinc-500 text-sm py-16">No customers found</div>;
   }
 
-  const showRevenue = filter === "subscribed";
+  const showRevenue = filter === "paid";
   const showUninstalled = filter === "uninstalled" || filter === "all";
 
   return (
@@ -32,6 +32,7 @@ export default function CustomerTable({ customers, filter }: Props) {
         <thead>
           <tr className="border-b border-zinc-800">
             <th className="text-left text-zinc-400 font-medium pb-3 pr-4">Shop</th>
+            <th className="text-left text-zinc-400 font-medium pb-3 pr-4">Store</th>
             {showRevenue && (
               <>
                 <th className="text-left text-zinc-400 font-medium pb-3 pr-4">Plan</th>
@@ -51,6 +52,27 @@ export default function CustomerTable({ customers, filter }: Props) {
               <td className="py-3 pr-4">
                 <p className="text-white font-medium">{c.shopName || c.shopDomain}</p>
                 <p className="text-zinc-500 text-xs">{c.shopDomain}</p>
+              </td>
+
+              <td className="py-3 pr-4">
+                <div className="flex flex-col gap-0.5">
+                  <a
+                    href={`https://${c.shopDomain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-zinc-400 text-xs hover:text-zinc-200 transition-colors"
+                  >
+                    Storefront ↗
+                  </a>
+                  <a
+                    href={`https://${c.shopDomain}/admin`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-zinc-500 text-xs hover:text-zinc-300 transition-colors"
+                  >
+                    Admin ↗
+                  </a>
+                </div>
               </td>
 
               {showRevenue && (
