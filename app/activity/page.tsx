@@ -14,27 +14,27 @@ type AppEvent = {
 };
 
 const EVENT_META: Record<string, { label: string; badge: string }> = {
-  RELATIONSHIP_INSTALLED:              { label: "Installed",              badge: "bg-emerald-900/40 text-emerald-400" },
-  RELATIONSHIP_UNINSTALLED:            { label: "Uninstalled",            badge: "bg-red-900/40 text-red-400" },
-  RELATIONSHIP_REACTIVATED:            { label: "Reactivated",            badge: "bg-blue-900/40 text-blue-400" },
-  RELATIONSHIP_DEACTIVATED:            { label: "Deactivated",            badge: "bg-orange-900/40 text-orange-400" },
-  SUBSCRIPTION_CHARGE_ACTIVATED:       { label: "Subscription Started",   badge: "bg-emerald-900/40 text-emerald-400" },
-  SUBSCRIPTION_CHARGE_ACCEPTED:        { label: "Subscription Accepted",  badge: "bg-emerald-900/40 text-emerald-300" },
-  SUBSCRIPTION_CHARGE_CANCELED:        { label: "Subscription Cancelled", badge: "bg-red-900/40 text-red-400" },
-  SUBSCRIPTION_CHARGE_DECLINED:        { label: "Subscription Declined",  badge: "bg-red-900/40 text-red-300" },
-  SUBSCRIPTION_CHARGE_EXPIRED:         { label: "Subscription Expired",   badge: "bg-zinc-800 text-zinc-400" },
-  SUBSCRIPTION_CHARGE_FROZEN:          { label: "Subscription Frozen",    badge: "bg-yellow-900/40 text-yellow-400" },
-  SUBSCRIPTION_CHARGE_UNFROZEN:        { label: "Subscription Unfrozen",  badge: "bg-blue-900/40 text-blue-300" },
-  SUBSCRIPTION_CAPPED_AMOUNT_UPDATED:  { label: "Cap Amount Updated",     badge: "bg-zinc-800 text-zinc-300" },
-  SUBSCRIPTION_APPROACHING_CAPPED_AMOUNT: { label: "Approaching Cap",     badge: "bg-yellow-900/40 text-yellow-300" },
-  ONE_TIME_CHARGE_ACTIVATED:           { label: "One-time Purchase",      badge: "bg-purple-900/40 text-purple-400" },
-  ONE_TIME_CHARGE_ACCEPTED:            { label: "Charge Accepted",        badge: "bg-purple-900/40 text-purple-300" },
-  ONE_TIME_CHARGE_DECLINED:            { label: "Charge Declined",        badge: "bg-red-900/40 text-red-300" },
-  ONE_TIME_CHARGE_EXPIRED:             { label: "Charge Expired",         badge: "bg-zinc-800 text-zinc-400" },
-  CREDIT_APPLIED:                      { label: "Credit Applied",         badge: "bg-emerald-900/40 text-emerald-300" },
-  CREDIT_FAILED:                       { label: "Credit Failed",          badge: "bg-red-900/40 text-red-300" },
-  CREDIT_PENDING:                      { label: "Credit Pending",         badge: "bg-yellow-900/40 text-yellow-300" },
-  USAGE_CHARGE_APPLIED:                { label: "Usage Charge",           badge: "bg-blue-900/40 text-blue-300" },
+  RELATIONSHIP_INSTALLED:                 { label: "Installed",              badge: "bg-emerald-900/60 text-emerald-300" },
+  RELATIONSHIP_UNINSTALLED:               { label: "Uninstalled",            badge: "bg-red-900/60 text-red-300" },
+  RELATIONSHIP_REACTIVATED:               { label: "Reactivated",            badge: "bg-blue-900/60 text-blue-300" },
+  RELATIONSHIP_DEACTIVATED:               { label: "Deactivated",            badge: "bg-orange-900/60 text-orange-300" },
+  SUBSCRIPTION_CHARGE_ACTIVATED:          { label: "Sub Started",            badge: "bg-emerald-900/60 text-emerald-300" },
+  SUBSCRIPTION_CHARGE_ACCEPTED:           { label: "Sub Accepted",           badge: "bg-emerald-900/60 text-emerald-200" },
+  SUBSCRIPTION_CHARGE_CANCELED:           { label: "Sub Cancelled",          badge: "bg-red-900/60 text-red-300" },
+  SUBSCRIPTION_CHARGE_DECLINED:           { label: "Sub Declined",           badge: "bg-red-900/60 text-red-200" },
+  SUBSCRIPTION_CHARGE_EXPIRED:            { label: "Sub Expired",            badge: "bg-zinc-700 text-zinc-300" },
+  SUBSCRIPTION_CHARGE_FROZEN:             { label: "Sub Frozen",             badge: "bg-yellow-900/60 text-yellow-300" },
+  SUBSCRIPTION_CHARGE_UNFROZEN:           { label: "Sub Unfrozen",           badge: "bg-blue-900/60 text-blue-300" },
+  SUBSCRIPTION_CAPPED_AMOUNT_UPDATED:     { label: "Cap Updated",            badge: "bg-zinc-700 text-zinc-300" },
+  SUBSCRIPTION_APPROACHING_CAPPED_AMOUNT: { label: "Approaching Cap",        badge: "bg-yellow-900/60 text-yellow-300" },
+  ONE_TIME_CHARGE_ACTIVATED:              { label: "One-time Purchase",      badge: "bg-purple-900/60 text-purple-300" },
+  ONE_TIME_CHARGE_ACCEPTED:              { label: "Charge Accepted",         badge: "bg-purple-900/60 text-purple-200" },
+  ONE_TIME_CHARGE_DECLINED:              { label: "Charge Declined",         badge: "bg-red-900/60 text-red-200" },
+  ONE_TIME_CHARGE_EXPIRED:               { label: "Charge Expired",          badge: "bg-zinc-700 text-zinc-300" },
+  CREDIT_APPLIED:                        { label: "Credit Applied",          badge: "bg-emerald-900/60 text-emerald-200" },
+  CREDIT_FAILED:                         { label: "Credit Failed",           badge: "bg-red-900/60 text-red-200" },
+  CREDIT_PENDING:                        { label: "Credit Pending",          badge: "bg-yellow-900/60 text-yellow-200" },
+  USAGE_CHARGE_APPLIED:                  { label: "Usage Charge",            badge: "bg-blue-900/60 text-blue-200" },
 };
 
 const EVENT_GROUPS = [
@@ -45,7 +45,7 @@ const EVENT_GROUPS = [
 ];
 
 function EventBadge({ type }: { type: string }) {
-  const meta = EVENT_META[type] ?? { label: type, badge: "bg-zinc-800 text-zinc-400" };
+  const meta = EVENT_META[type] ?? { label: type, badge: "bg-zinc-700 text-zinc-300" };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${meta.badge}`}>
       {meta.label}
@@ -93,7 +93,6 @@ export default function ActivityPage() {
     });
   }
 
-  // Group consecutive events by date for visual separation
   const grouped: { date: string; items: AppEvent[] }[] = [];
   for (const event of events) {
     const date = format(new Date(event.occurredAt), "MMMM d, yyyy");
@@ -121,45 +120,51 @@ export default function ActivityPage() {
           className="bg-zinc-900 border border-zinc-700 text-white placeholder-zinc-500 rounded-lg px-3 py-2 text-sm max-w-xs focus:outline-none focus:border-zinc-500"
         />
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col gap-2.5">
           {EVENT_GROUPS.map((group) => {
             const allOn = group.types.every((t) => activeTypes.has(t));
             return (
-              <div key={group.label} className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5">
+              <div key={group.label} className="flex items-start gap-3">
                 <button
                   onClick={() => toggleGroup(group.types)}
-                  className={`text-xs font-medium px-2 py-0.5 rounded transition-colors ${
-                    allOn ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-white"
+                  className={`text-xs w-20 text-right shrink-0 pt-0.5 transition-colors ${
+                    allOn ? "text-white" : "text-zinc-500 hover:text-zinc-300"
                   }`}
                 >
                   {group.label}
                 </button>
-                <span className="text-zinc-700">|</span>
-                {group.types.map((type) => {
-                  const meta = EVENT_META[type] ?? { label: type, badge: "" };
-                  const on = activeTypes.has(type);
-                  return (
-                    <button
-                      key={type}
-                      onClick={() => toggleType(type)}
-                      className={`text-xs px-1.5 py-0.5 rounded transition-opacity ${
-                        on ? "opacity-100" : "opacity-35 hover:opacity-60"
-                      } ${meta.badge}`}
-                    >
-                      {meta.label}
-                    </button>
-                  );
-                })}
+                <div className="flex flex-wrap gap-1.5">
+                  {group.types.map((type) => {
+                    const meta = EVENT_META[type] ?? { label: type, badge: "bg-zinc-700 text-zinc-300" };
+                    const on = activeTypes.has(type);
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => toggleType(type)}
+                        className={`text-xs px-2 py-0.5 rounded-full transition-colors ${
+                          on
+                            ? meta.badge
+                            : "border border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500"
+                        }`}
+                      >
+                        {meta.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
           {activeTypes.size > 0 && (
-            <button
-              onClick={() => setActiveTypes(new Set())}
-              className="text-xs text-zinc-500 hover:text-white transition-colors self-center"
-            >
-              Clear filters
-            </button>
+            <div className="flex items-start gap-3">
+              <div className="w-20" />
+              <button
+                onClick={() => setActiveTypes(new Set())}
+                className="text-xs text-zinc-500 hover:text-white transition-colors"
+              >
+                Clear filters
+              </button>
+            </div>
           )}
         </div>
       </div>
