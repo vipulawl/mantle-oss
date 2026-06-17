@@ -22,13 +22,14 @@ model Install {
 }
 
 model Transaction {
-  id         String   @id
-  shopDomain String
-  type       String   // SALE | REFUND
-  amount     Float
-  currency   String   @default("USD")
-  occurredAt DateTime
-  createdAt  DateTime @default(now())
+  id             String   @id
+  shopDomain     String
+  type           String   // SALE | REFUND
+  amount         Float
+  currency       String   @default("USD")
+  billingInterval String? // EVERY_30_DAYS | ANNUAL | ONE_TIME
+  occurredAt     DateTime
+  createdAt      DateTime @default(now())
 }
 
 model Review {

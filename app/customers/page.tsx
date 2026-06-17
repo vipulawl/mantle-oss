@@ -8,37 +8,43 @@ import { apiFetch } from "@/lib/apiFetch";
 type Customer = {
   shopDomain: string;
   shopName: string | null;
-  plan: string | null;
   status: string;
   installedAt: string;
   uninstalledAt: string | null;
+  totalRevenue: number;
+  planLabel: string | null;
+  planAmount: number | null;
 };
 
+const FILTERS = [
+  { key: "subscribed", label: "Subscribed" },
+  { key: "installed",  label: "Installed" },
+  { key: "uninstalled", label: "Uninstalled" },
+  { key: "all",        label: "All" },
+];
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [status, setStatus] = useState("active");
+  const [filter, setFilter] = useState("subscribed");
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const fetchCustomers = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (status !== "all") params.set("status", status);
+    const params = new URLSearchParams({ filter });
     if (search) params.set("q", search);
     const data = await apiFetch<Customer[]>(`/api/customers?${params}`);
-    if (data) {
-      setCustomers(data);
-      setError(null);
-    } else {
-      setError("Failed to load customers — check the terminal for details");
-    }
-  }, [status, search]);
+    if (data) { setCustomers(data); setError(null); }
+    else setError("Failed to load customers — check terminal");
+  }, [filter, search]);
 
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
   useSyncEvents((event) => {
-    if (event.type === "installs") fetchCustomers();
+    if (event.type === "installs" || event.type === "transactions") fetchCustomers();
   });
+
+  const subscribedCount = customers.filter(c => c.totalRevenue > 0 && c.status === "active").length;
+  const totalRevenue = customers.reduce((sum, c) => sum + c.totalRevenue, 0);
 
   return (
     <div className="p-8">
@@ -50,7 +56,20 @@ export default function CustomersPage() {
         </div>
       )}
 
-      <div className="flex gap-3 mb-6">
+      {filter === "subscribed" && customers.length > 0 && (
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <p className="text-zinc-400 text-xs uppercase tracking-wider mb-1">Paying Customers</p>
+            <p className="text-white text-2xl font-semibold">{subscribedCount}</p>
+          </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <p className="text-zinc-400 text-xs uppercase tracking-wider mb-1">Total Revenue (this view)</p>
+            <p className="text-emerald-400 text-2xl font-semibold">${totalRevenue.toFixed(2)}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <input
           type="text"
           placeholder="Search by domain or name..."
@@ -59,17 +78,17 @@ export default function CustomersPage() {
           className="bg-zinc-900 border border-zinc-700 text-white placeholder-zinc-500 rounded-lg px-3 py-2 text-sm flex-1 max-w-xs focus:outline-none focus:border-zinc-500"
         />
         <div className="flex gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-1">
-          {["active", "churned", "all"].map((s) => (
+          {FILTERS.map(({ key, label }) => (
             <button
-              key={s}
-              onClick={() => setStatus(s)}
-              className={`px-3 py-1 rounded-md text-sm transition-colors capitalize ${
-                status === s
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                filter === key
                   ? "bg-zinc-700 text-white"
                   : "text-zinc-400 hover:text-white"
               }`}
             >
-              {s}
+              {label}
             </button>
           ))}
         </div>
@@ -77,7 +96,7 @@ export default function CustomersPage() {
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
         <p className="text-zinc-500 text-xs mb-4">{customers.length} customers</p>
-        <CustomerTable customers={customers} />
+        <CustomerTable customers={customers} filter={filter} />
       </div>
     </div>
   );

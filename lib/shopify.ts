@@ -112,6 +112,7 @@ export type PartnerTransaction = {
   createdAt: string;
   grossAmount?: { amount: string; currencyCode: string };
   shop?: { myshopifyDomain: string };
+  billingInterval?: string;
 };
 
 const TRANSACTIONS_QUERY = `
@@ -126,6 +127,7 @@ const TRANSACTIONS_QUERY = `
           ... on AppSubscriptionSale {
             grossAmount { amount currencyCode }
             shop { myshopifyDomain }
+            billingInterval
           }
           ... on AppOneTimeSale {
             grossAmount { amount currencyCode }

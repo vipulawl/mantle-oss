@@ -78,6 +78,7 @@ export async function syncTransactions() {
           type: isRefund ? "REFUND" : "SALE",
           amount: Math.abs(parseFloat(tx.grossAmount!.amount)),
           currency: tx.grossAmount!.currencyCode,
+          billingInterval: tx.billingInterval ?? null,
           occurredAt: new Date(tx.createdAt),
         },
       });
