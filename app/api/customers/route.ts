@@ -11,6 +11,15 @@ function formatPlan(billingInterval: string | null): string | null {
   return billingInterval;
 }
 
+// A shop is "currently subscribed" if their last charge is within the expected billing window.
+// Monthly: last charge ≤ 37 days ago (30 + 7-day grace).
+// Annual: last charge ≤ 400 days ago (365 + 35-day grace).
+function isActiveSubscription(lastTxDate: Date, billingInterval: string | null): boolean {
+  const daysSince = (Date.now() - lastTxDate.getTime()) / (1000 * 60 * 60 * 24);
+  if (billingInterval === "ANNUAL") return daysSince <= 400;
+  return daysSince <= 37;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -33,7 +42,6 @@ export async function GET(req: NextRequest) {
       orderBy: { installedAt: "desc" },
     });
 
-    // For all views: attach per-customer revenue and current plan
     const domains = installs.map((i) => i.shopDomain);
 
     const [revenueRows, planRows] = await Promise.all([
@@ -42,17 +50,22 @@ export async function GET(req: NextRequest) {
         where: { shopDomain: { in: domains }, type: "SALE" },
         _sum: { amount: true },
       }),
-      // Most recent subscription sale per shop → gives current billing interval
+      // Most recent subscription sale per shop → gives current billing interval and last charge date
       db.transaction.findMany({
         where: { shopDomain: { in: domains }, type: "SALE", billingInterval: { not: null } },
         orderBy: { occurredAt: "desc" },
         distinct: ["shopDomain"],
-        select: { shopDomain: true, billingInterval: true, amount: true },
+        select: { shopDomain: true, billingInterval: true, amount: true, occurredAt: true },
       }),
     ]);
 
     const revenueMap = new Map(revenueRows.map((r) => [r.shopDomain, r._sum.amount ?? 0]));
-    const planMap = new Map(planRows.map((r) => [r.shopDomain, { billingInterval: r.billingInterval, amount: r.amount }]));
+    const planMap = new Map(
+      planRows.map((r) => [
+        r.shopDomain,
+        { billingInterval: r.billingInterval, amount: r.amount, occurredAt: r.occurredAt },
+      ])
+    );
 
     const enriched = installs.map((i) => ({
       ...i,
@@ -62,10 +75,13 @@ export async function GET(req: NextRequest) {
       planAmount: planMap.get(i.shopDomain)?.amount ?? null,
     }));
 
-    // "Subscribed" = active + has paid at least once
     const filtered =
       filter === "subscribed"
-        ? enriched.filter((c) => c.totalRevenue > 0)
+        ? enriched.filter((c) => {
+            const plan = planMap.get(c.shopDomain);
+            if (!plan) return false;
+            return isActiveSubscription(plan.occurredAt, plan.billingInterval);
+          })
         : enriched;
 
     return Response.json(filtered);

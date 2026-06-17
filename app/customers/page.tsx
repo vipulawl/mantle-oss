@@ -43,7 +43,8 @@ export default function CustomersPage() {
     if (event.type === "installs" || event.type === "transactions") fetchCustomers();
   });
 
-  const subscribedCount = customers.filter(c => c.totalRevenue > 0 && c.status === "active").length;
+  // When filter === "subscribed", the API already returns only active subscribers
+  const subscribedCount = customers.length;
   const totalRevenue = customers.reduce((sum, c) => sum + c.totalRevenue, 0);
 
   return (
