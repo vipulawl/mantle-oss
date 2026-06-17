@@ -1,6 +1,5 @@
 import { db } from "./db";
 
-// Subscription charge event types that indicate an active subscription
 const SUB_EVENT_TYPES = [
   "SUBSCRIPTION_CHARGE_ACTIVATED",
   "SUBSCRIPTION_CHARGE_ACCEPTED",
@@ -12,7 +11,6 @@ const SUB_EVENT_TYPES = [
 ];
 const ACTIVE_SUB_EVENTS = new Set(["SUBSCRIPTION_CHARGE_ACTIVATED", "SUBSCRIPTION_CHARGE_UNFROZEN"]);
 
-// Returns domains with a currently active subscription based on their last charge event.
 async function getSubscribedDomains(): Promise<Set<string>> {
   const latestSubEvents = await db.appEvent.findMany({
     where: { type: { in: SUB_EVENT_TYPES } },
@@ -44,9 +42,7 @@ export async function getOverviewMetrics() {
   const totalRefunds = refunds.reduce((sum, t) => sum + t.amount, 0);
   const netRevenue = totalRevenue - totalRefunds;
 
-  // MRR: sum of current plan amounts for active subscribers only.
-  // Monthly plans contribute their amount directly; annual plans contribute amount/12.
-  // Uses the most recent SALE transaction per shop to get the current plan price.
+  // MRR: current plan price per active subscriber; annual plans normalised to /12
   const planRows = await db.transaction.findMany({
     where: {
       shopDomain: { in: [...subscribedDomains] },
@@ -59,8 +55,7 @@ export async function getOverviewMetrics() {
   });
 
   const mrr = planRows.reduce((sum, r) => {
-    if (r.billingInterval === "ANNUAL") return sum + r.amount / 12;
-    return sum + r.amount;
+    return sum + (r.billingInterval === "ANNUAL" ? r.amount / 12 : r.amount);
   }, 0);
 
   const avgRating =
@@ -95,17 +90,47 @@ export async function getRevenueByDay(days = 90) {
   return Object.entries(byDay).map(([date, revenue]) => ({ date, revenue }));
 }
 
-export async function getChurnByMonth() {
-  const churned = await db.install.findMany({
-    where: { status: "churned", uninstalledAt: { not: null } },
+// MRR received per calendar month (annual charges normalised to /12).
+// Approximates MRR trend — not a snapshot of "MRR at end of month" but
+// the effective monthly-equivalent revenue collected each month.
+export async function getMRRByMonth() {
+  const transactions = await db.transaction.findMany({
+    where: { type: "SALE", billingInterval: { not: null } },
+    orderBy: { occurredAt: "asc" },
   });
 
   const byMonth: Record<string, number> = {};
-  for (const i of churned) {
-    if (!i.uninstalledAt) continue;
-    const month = i.uninstalledAt.toISOString().slice(0, 7);
-    byMonth[month] = (byMonth[month] || 0) + 1;
+  for (const t of transactions) {
+    const month = t.occurredAt.toISOString().slice(0, 7);
+    byMonth[month] = (byMonth[month] || 0) + (t.billingInterval === "ANNUAL" ? t.amount / 12 : t.amount);
   }
 
-  return Object.entries(byMonth).map(([month, count]) => ({ month, count }));
+  return Object.entries(byMonth).map(([month, mrr]) => ({ month, mrr: Math.round(mrr * 100) / 100 }));
+}
+
+// New installs and churns per calendar month, merged into one series for the grouped bar chart.
+export async function getInstallsAndChurnByMonth() {
+  const installs = await db.install.findMany();
+
+  const byMonth: Record<string, { installs: number; churns: number }> = {};
+
+  const ensure = (m: string) => {
+    if (!byMonth[m]) byMonth[m] = { installs: 0, churns: 0 };
+  };
+
+  for (const i of installs) {
+    const installMonth = i.installedAt.toISOString().slice(0, 7);
+    ensure(installMonth);
+    byMonth[installMonth].installs++;
+
+    if (i.uninstalledAt) {
+      const churnMonth = i.uninstalledAt.toISOString().slice(0, 7);
+      ensure(churnMonth);
+      byMonth[churnMonth].churns++;
+    }
+  }
+
+  return Object.entries(byMonth)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, data]) => ({ month, ...data }));
 }

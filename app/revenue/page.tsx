@@ -5,18 +5,16 @@ import RevenueChart from "@/components/RevenueChart";
 import { useSyncEvents } from "@/hooks/useSyncEvents";
 import { apiFetch } from "@/lib/apiFetch";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
+  BarChart, Bar,
+  XAxis, YAxis,
+  CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend,
 } from "recharts";
 
 type RevenueData = {
   revenueByDay: { date: string; revenue: number }[];
-  churnByMonth: { month: string; count: number }[];
+  mrrByMonth: { month: string; mrr: number }[];
+  installsByMonth: { month: string; installs: number; churns: number }[];
 };
 
 export default function RevenuePage() {
@@ -33,8 +31,13 @@ export default function RevenuePage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useSyncEvents((event) => {
-    if (event.type === "transactions") fetchData();
+    if (event.type === "transactions" || event.type === "installs") fetchData();
   });
+
+  const tooltipStyle = {
+    contentStyle: { background: "#18181b", border: "1px solid #3f3f46", borderRadius: 8 },
+    labelStyle: { color: "#a1a1aa" },
+  };
 
   return (
     <div className="p-8">
@@ -71,29 +74,23 @@ export default function RevenuePage() {
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
           <p className="text-zinc-400 text-xs uppercase tracking-wider mb-4">
-            Monthly Churns
+            Installs & Churn by month
           </p>
-          {data?.churnByMonth && data.churnByMonth.length > 0 ? (
+          {data?.installsByMonth && data.installsByMonth.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={data.churnByMonth}>
+              <BarChart data={data.installsByMonth}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                 <XAxis dataKey="month" tick={{ fill: "#71717a", fontSize: 11 }} />
-                <YAxis tick={{ fill: "#71717a", fontSize: 11 }} width={30} />
-                <Tooltip
-                  contentStyle={{
-                    background: "#18181b",
-                    border: "1px solid #3f3f46",
-                    borderRadius: 8,
-                  }}
-                  labelStyle={{ color: "#a1a1aa" }}
-                  itemStyle={{ color: "#f87171" }}
-                />
-                <Bar dataKey="count" fill="#f87171" radius={[4, 4, 0, 0]} />
+                <YAxis tick={{ fill: "#71717a", fontSize: 11 }} width={30} allowDecimals={false} />
+                <Tooltip {...tooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 11, color: "#71717a", paddingTop: 8 }} />
+                <Bar dataKey="installs" name="Installs" fill="#34d399" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="churns" name="Churns" fill="#f87171" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="h-48 flex items-center justify-center text-zinc-500 text-sm">
-              No churn data yet
+              No data yet
             </div>
           )}
         </div>

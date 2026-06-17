@@ -1,4 +1,4 @@
-import { getRevenueByDay, getChurnByMonth } from "@/lib/metrics";
+import { getRevenueByDay, getMRRByMonth, getInstallsAndChurnByMonth } from "@/lib/metrics";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -9,12 +9,13 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const days = parseInt(searchParams.get("days") || "90", 10);
 
-    const [revenueByDay, churnByMonth] = await Promise.all([
+    const [revenueByDay, mrrByMonth, installsByMonth] = await Promise.all([
       getRevenueByDay(days),
-      getChurnByMonth(),
+      getMRRByMonth(),
+      getInstallsAndChurnByMonth(),
     ]);
 
-    return Response.json({ revenueByDay, churnByMonth });
+    return Response.json({ revenueByDay, mrrByMonth, installsByMonth });
   } catch (err) {
     console.error("[/api/revenue]", err);
     return Response.json(
