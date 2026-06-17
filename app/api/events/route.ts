@@ -5,22 +5,32 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const encoder = new TextEncoder();
+  let closed = false;
 
   const stream = new ReadableStream({
     start(controller) {
       const unsub = subscribeSyncEvents((event) => {
-        const data = `data: ${JSON.stringify(event)}\n\n`;
-        controller.enqueue(encoder.encode(data));
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        } catch {}
       });
 
-      // Heartbeat every 25s to keep connection alive
       const heartbeat = setInterval(() => {
-        controller.enqueue(encoder.encode(": heartbeat\n\n"));
+        if (closed) { clearInterval(heartbeat); return; }
+        try {
+          controller.enqueue(encoder.encode(": heartbeat\n\n"));
+        } catch {
+          closed = true;
+          clearInterval(heartbeat);
+          unsub();
+        }
       }, 25000);
 
       return () => {
-        unsub();
+        closed = true;
         clearInterval(heartbeat);
+        unsub();
       };
     },
   });

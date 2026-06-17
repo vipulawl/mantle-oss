@@ -19,6 +19,8 @@ async function gql(query: string, variables: Record<string, unknown> = {}) {
 }
 
 // --- Installs via app.events ---
+// The 2026 Partner API removed app.installations; installs come from app.events.
+// PageInfo.endCursor doesn't exist in this API — cursor lives on each edge instead.
 
 type AppEvent = {
   type: string;
@@ -38,8 +40,9 @@ const EVENTS_QUERY = `
   query AppEvents($appId: ID!, $after: String) {
     app(id: $appId) {
       events(first: 100, after: $after) {
-        pageInfo { hasNextPage endCursor }
+        pageInfo { hasNextPage }
         edges {
+          cursor
           node {
             type
             occurredAt
@@ -58,13 +61,16 @@ export async function fetchAllInstalls(): Promise<ShopInstallState[]> {
   do {
     const data = await gql(EVENTS_QUERY, { appId: APP_ID, after });
     const page = data.app.events;
-    const relevant = page.edges
-      .map((e: { node: AppEvent }) => e.node)
-      .filter((e: AppEvent) =>
-        e.type === "RELATIONSHIP_INSTALLED" || e.type === "RELATIONSHIP_UNINSTALLED"
-      );
+    const edges: { cursor: string; node: AppEvent }[] = page.edges;
+
+    const relevant = edges
+      .map((e) => e.node)
+      .filter((e) => e.type === "RELATIONSHIP_INSTALLED" || e.type === "RELATIONSHIP_UNINSTALLED");
     events.push(...relevant);
-    after = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+
+    after = page.pageInfo.hasNextPage && edges.length > 0
+      ? edges[edges.length - 1].cursor
+      : null;
   } while (after);
 
   // Reconstruct per-shop current state from full event history
@@ -82,7 +88,6 @@ export async function fetchAllInstalls(): Promise<ShopInstallState[]> {
     const firstInstall = shopEvents.find((e) => e.type === "RELATIONSHIP_INSTALLED");
     const lastEvent = shopEvents[shopEvents.length - 1];
     const lastUninstall = [...shopEvents].reverse().find((e) => e.type === "RELATIONSHIP_UNINSTALLED");
-
     const status: "active" | "churned" =
       lastEvent.type === "RELATIONSHIP_INSTALLED" ? "active" : "churned";
 
@@ -99,11 +104,12 @@ export async function fetchAllInstalls(): Promise<ShopInstallState[]> {
 }
 
 // --- Transactions ---
+// AppSubscriptionRefund type doesn't exist in 2026-04 — only AppSubscriptionSale and AppOneTimeSale.
+// Refunds are detected from the GID: gid://partners/AppSubscriptionRefund/...
 
 export type PartnerTransaction = {
   id: string;
   createdAt: string;
-  // populated via inline fragments
   grossAmount?: { amount: string; currencyCode: string };
   shop?: { myshopifyDomain: string };
 };
@@ -111,16 +117,13 @@ export type PartnerTransaction = {
 const TRANSACTIONS_QUERY = `
   query AppTransactions($appId: ID!, $after: String) {
     transactions(appId: $appId, first: 100, after: $after) {
-      pageInfo { hasNextPage endCursor }
+      pageInfo { hasNextPage }
       edges {
+        cursor
         node {
           id
           createdAt
           ... on AppSubscriptionSale {
-            grossAmount { amount currencyCode }
-            shop { myshopifyDomain }
-          }
-          ... on AppSubscriptionRefund {
             grossAmount { amount currencyCode }
             shop { myshopifyDomain }
           }
@@ -141,12 +144,15 @@ export async function fetchAllTransactions(): Promise<PartnerTransaction[]> {
   do {
     const data = await gql(TRANSACTIONS_QUERY, { appId: APP_ID, after });
     const page = data.transactions;
-    // Only keep nodes that have grossAmount (i.e. matched a known inline fragment)
-    const nodes = page.edges
-      .map((e: { node: PartnerTransaction }) => e.node)
-      .filter((n: PartnerTransaction) => n.grossAmount);
+    const edges: { cursor: string; node: PartnerTransaction }[] = page.edges;
+
+    // Only keep nodes matched by an inline fragment (have grossAmount)
+    const nodes = edges.map((e) => e.node).filter((n) => n.grossAmount);
     results.push(...nodes);
-    after = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+
+    after = page.pageInfo.hasNextPage && edges.length > 0
+      ? edges[edges.length - 1].cursor
+      : null;
   } while (after);
 
   return results;
