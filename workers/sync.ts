@@ -71,7 +71,8 @@ export async function syncTransactions() {
 
       await db.transaction.upsert({
         where: { id: tx.id },
-        update: {},
+        // Backfill billingInterval if it was null when the row was first created
+        update: tx.billingInterval ? { billingInterval: tx.billingInterval } : {},
         create: {
           id: tx.id,
           shopDomain: tx.shop!.myshopifyDomain,
